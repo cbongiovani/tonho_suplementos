@@ -1,8 +1,13 @@
 import { createServiceRoleClient } from "@/lib/supabase/server"
-import type { Database } from "@/lib/supabase/types"
 import { ConfigClient } from "@/components/domain/admin/ConfigClient"
 
-type ConfigRow = Database["public"]["Tables"]["config"]["Row"]
+type ConfigRow = {
+  id: number
+  logo_url: string | null
+  instagram_url: string
+  whatsapp_url: string | null
+  updated_at: string
+}
 
 const defaultConfig: ConfigRow = {
   id: 1,
@@ -15,6 +20,7 @@ const defaultConfig: ConfigRow = {
 export default async function ConfigPage() {
   const supabase = createServiceRoleClient()
 
+  // ⚠️ Se sua tabela tiver outro nome, troque "config" aqui:
   const { data, error } = await supabase
     .from("config")
     .select("*")
@@ -25,7 +31,6 @@ export default async function ConfigPage() {
     console.error("Erro ao buscar config:", error.message)
   }
 
-  // ✅ garante tipo correto (nunca vira {} )
   const config: ConfigRow = (data ?? defaultConfig) as ConfigRow
 
   return (
