@@ -1,17 +1,34 @@
-import { createServiceRoleClient } from '@/lib/supabase/server'
-import { ProductsClient } from '@/components/domain/admin/ProductsClient'
+import { createServiceRoleClient } from "@/lib/supabase/server"
+import type { Database } from "@/lib/supabase/types"
+import { ProductsClient } from "@/components/domain/admin/ProductsClient" // se for export nomeado
+// se for default, use: import ProductsClient from "@/components/domain/admin/ProductsClient"
 
-export default async function AdminProductsPage() {
+type ProductRow = Database["public"]["Tables"]["products"]["Row"]
+
+export default async function ProdutosPage() {
   const supabase = createServiceRoleClient()
-  const { data: products } = await supabase.from('products').select('*').order('created_at', { ascending: false })
+
+  const { data, error } = await supabase
+    .from("products")
+    .select("*")
+    .order("created_at", { ascending: false })
+
+  if (error) {
+    console.error("Erro ao buscar products:", error.message)
+  }
+
+  const products: ProductRow[] = (data ?? []) as ProductRow[]
 
   return (
-    <div className="p-8">
-      <div className="mb-8">
-        <h1 className="font-display text-4xl text-white">PRODUTOS</h1>
+    <div className="min-h-screen bg-black text-white p-6">
+      <div className="max-w-5xl mx-auto">
+        <h1 className="text-2xl font-bold uppercase tracking-widest">Produtos</h1>
         <p className="text-white/40 text-sm mt-1">Gerencie o catálogo de produtos</p>
       </div>
-      <ProductsClient initialProducts={products ?? []} />
+
+      <div className="max-w-5xl mx-auto mt-6">
+        <ProductsClient initialProducts={products} />
+      </div>
     </div>
   )
 }
