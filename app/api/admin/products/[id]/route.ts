@@ -3,7 +3,6 @@ import { createServiceRoleClient } from '@/lib/supabase/server'
 import type { Database } from '@/lib/supabase/types'
 
 type ProductUpdate = Database['public']['Tables']['products']['Update']
-type ProductRow = Database['public']['Tables']['products']['Row']
 
 export async function PATCH(
   req: NextRequest,
@@ -12,11 +11,6 @@ export async function PATCH(
   try {
     const supabase = createServiceRoleClient()
     const body = (await req.json()) as ProductUpdate
-
-    // opcional: se quiser evitar update vazio
-    if (!body || Object.keys(body).length === 0) {
-      return NextResponse.json({ error: 'Body vazio' }, { status: 400 })
-    }
 
     const { data: product, error } = await supabase
       .from('products')
@@ -29,7 +23,7 @@ export async function PATCH(
       return NextResponse.json({ error: error.message }, { status: 400 })
     }
 
-    return NextResponse.json({ product: product as ProductRow })
+    return NextResponse.json({ product })
   } catch (err: any) {
     return NextResponse.json(
       { error: err?.message ?? 'Erro inesperado' },
