@@ -17,8 +17,19 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
     const data = ProductSchema.parse(body)
-    const supabase = createServiceRoleClient()
-    const { data: product, error } = await supabase.from('products').insert(data).select().single()
+
+const insertData = {
+  ...data,
+  description: data.description ?? null,
+  image_url: data.image_url ?? null,
+}
+
+const supabase = createServiceRoleClient()
+const { data: product, error } = await supabase
+  .from("products")
+  .insert(insertData)
+  .select("*")
+  .single()
     if (error) throw error
     return NextResponse.json({ product })
   } catch (err) {
