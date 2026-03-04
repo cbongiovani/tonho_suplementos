@@ -1,57 +1,64 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createServiceRoleClient } from '@/lib/supabase/server'
-import { z } from 'zod'
+import { NextResponse } from "next/server"
+import { z } from "zod"
+import { createServiceRoleClient } from "@/lib/supabase/server"
+import type { Database } from "@/lib/supabase/types"
+
+type LeadInsert = Database["public"]["Tables"]["leads"]["Insert"]
 
 const LeadSchema = z.object({
-  name: z.string().optional(),
-  email: z.string().email().optional().or(z.literal('')),
+  name: z.string().min(1).optional().or(z.literal("")),
+  email: z.string().email().optional().or(z.literal("")),
   whatsapp: z.string().min(8),
-  instagram_username: z.string().optional(),
-  source: z.string().default('landing'),
-  consent: z.boolean(),
+  instagram_username: z.string().optional().or(z.literal("")),
+  source: z.string().min(1).default("instagram"),
+  tags: z.array(z.string()).optional().default([]),
+  consentimento_lgpd: z.boolean().default(true),
 })
 
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   try {
     const body = await req.json()
     const data = LeadSchema.parse(body)
 
-    if (!data.consent) {
-      return NextResponse.json({ error: 'Consentimento LGPD obrigatório' }, { status: 400 })
-    }
-
     const supabase = createServiceRoleClient()
 
-    // Check if lead already exists by whatsapp
-    const { data: existing } = await supabase
-      .from('leads')
-      .select('id')
-      .eq('whatsapp', data.whatsapp)
-      .single()
+    const nowIso = new Date().toISOString()
 
-    if (existing) {
-      return NextResponse.json({ lead: existing, isNew: false })
+    // ✅ payload 100% alinhado com o type Insert do Supabase
+    const payload: LeadInsert = {
+      auth_user_id: null,
+      name: data.name ? data.name : null,
+      email: data.email ? data.email : null,
+      whatsapp: data.whatsapp,
+      instagram_username: data.instagram_username ? data.instagram_username : null,
+      instagram_id: null,
+      tags: (data.tags ?? []) as string[],
+      source: data.source,
+      consentimento_lgpd: data.consentimento_lgpd ?? true,
+      consentimento_lgpd_at: (data.consentimento_lgpd ?? true) ? nowIso : null,
+      last_access_at: null,
     }
 
     const { data: lead, error } = await supabase
-      .from('leads')
-      .insert({
-        name: data.name || null,
-        email: data.email || null,
-        whatsapp: data.whatsapp,
-        instagram_username: data.instagram_username || null,
-        source: data.source,
-        consentimento_lgpd: true,
-        consentimento_lgpd_at: new Date().toISOString(),
-        tags: [],
-      })
-      .select()
+      .from("leads")
+      .insert(payload)
+      .select("*")
       .single()
 
     if (error) throw error
-    return NextResponse.json({ lead, isNew: true })
-  } catch (err) {
-    console.error(err)
-    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
+
+    return NextResponse.json({ lead })
+  } catch (err: any) {
+    if (err?.name === "ZodError") {
+      return NextResponse.json(
+        { error: "Dados inválidos", details: err.errors },
+        { status: 400 }
+      )
+    }
+
+    return NextResponse.json(
+      { error: err?.message ?? "Erro ao criar lead" },
+      { status: 500 }
+    )
   }
 }
