@@ -1,4 +1,4 @@
-import CampaignsClient from "@/components/domain/admin/CampaignsClient"
+import { CampaignsClient } from "@/components/domain/admin/CampaignsClient"
 import { createServiceRoleClient } from "@/lib/supabase/server"
 import type { Database, Json } from "@/lib/supabase/types"
 
