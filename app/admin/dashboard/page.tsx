@@ -1,6 +1,10 @@
 import { createServiceRoleClient } from '@/lib/supabase/server'
 import { Users, TrendingUp, Calendar, Tag } from 'lucide-react'
 
+type LeadTagsRow = {
+  tags: string[] | null
+}
+
 async function getStats() {
   const supabase = createServiceRoleClient()
   const now = new Date()
@@ -13,12 +17,27 @@ async function getStats() {
     supabase.from('leads').select('id', { count: 'exact', head: true }).gte('created_at', todayStart),
     supabase.from('leads').select('id', { count: 'exact', head: true }).gte('created_at', weekStart),
     supabase.from('leads').select('id', { count: 'exact', head: true }).gte('created_at', monthStart),
-    supabase.from('leads').select('tags'),
+
+    // ✅ TIPADO: garante que tags.data seja LeadTagsRow[] e não "never"
+    supabase.from('leads').select('tags').returns<LeadTagsRow[]>(),
   ])
 
+  // ✅ Loop seguro + sem "never"
   const tagCounts: Record<string, number> = {}
-  tags.data?.forEach(l => l.tags?.forEach((t: string) => { tagCounts[t] = (tagCounts[t] ?? 0) + 1 }))
-  const topTags = Object.entries(tagCounts).sort((a, b) => b[1] - a[1]).slice(0, 5)
+  const rows = tags.data ?? []
+
+  for (const l of rows) {
+    const arr = l.tags ?? []
+    for (const t of arr) {
+      const key = String(t).trim()
+      if (!key) continue
+      tagCounts[key] = (tagCounts[key] ?? 0) + 1
+    }
+  }
+
+  const topTags = Object.entries(tagCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
 
   return {
     total: total.count ?? 0,
@@ -65,6 +84,7 @@ export default async function AdminDashboard() {
           <Tag size={16} className="text-[#FF6A00]" />
           <h2 className="font-bold text-white">Top Tags / Interesses</h2>
         </div>
+
         {stats.topTags.length === 0 ? (
           <p className="text-white/30 text-sm">Nenhuma tag registrada ainda.</p>
         ) : (
@@ -73,7 +93,12 @@ export default async function AdminDashboard() {
               <div key={tag} className="flex items-center justify-between">
                 <span className="text-sm text-white/70 uppercase tracking-wider">{tag}</span>
                 <div className="flex items-center gap-2">
-                  <div className="h-1.5 bg-[#FF6A00] rounded-full" style={{ width: `${Math.max(20, (count / stats.total) * 200)}px` }} />
+                  <div
+                    className="h-1.5 bg-[#FF6A00] rounded-full"
+                    style={{
+                      width: `${Math.max(20, stats.total > 0 ? (count / stats.total) * 200 : 20)}px`,
+                    }}
+                  />
                   <span className="text-xs text-white/40 w-6 text-right">{count}</span>
                 </div>
               </div>
