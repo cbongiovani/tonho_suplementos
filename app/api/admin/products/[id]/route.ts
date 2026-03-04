@@ -1,30 +1,37 @@
-import { NextResponse } from 'next/server'
-import { createServiceRoleClient } from '@/lib/supabase/server'
+import { NextResponse } from "next/server"
+import { createServiceRoleClient } from "@/lib/supabase/server"
+import type { TablesUpdate } from "@/lib/supabase/types"
 
-type Params = { id: string }
-
-export async function PATCH(req: Request, { params }: { params: Params }) {
+export async function PATCH(
+  req: Request,
+  { params }: { params: { id: string } }
+) {
   try {
-    const body = (await req.json()) as Record<string, unknown>
     const supabase = createServiceRoleClient()
 
+    // ✅ tipa o body como update da tabela products
+    const body = (await req.json()) as TablesUpdate<"products">
+
+    // (opcional, mas recomendado) remove campos que não deveriam ser atualizados
+    // @ts-expect-error - só pra garantir
+    delete (body as any).id
+    // @ts-expect-error - só pra garantir
+    delete (body as any).created_at
+
     const { data: product, error } = await supabase
-      .from('products')
-      // ✅ cast para não virar "never" quando types não conhecem a tabela
-      .update(body as any)
-      .eq('id', params.id as any)
-      .select('*')
+      .from("products")
+      .update(body)
+      .eq("id", params.id)
+      .select("*")
       .single()
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 })
-    }
+    if (error) throw error
 
     return NextResponse.json({ product })
   } catch (err: any) {
     return NextResponse.json(
-      { error: err?.message ?? 'Unexpected error' },
-      { status: 500 }
+      { error: err?.message ?? "Erro ao atualizar produto" },
+      { status: 400 }
     )
   }
 }
