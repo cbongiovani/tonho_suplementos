@@ -1,17 +1,43 @@
-import { createServiceRoleClient } from '@/lib/supabase/server'
-import { ConfigClient } from '@/components/domain/admin/ConfigClient'
+import { createServiceRoleClient } from "@/lib/supabase/server"
+import type { Database } from "@/lib/supabase/types"
+import { ConfigClient } from "@/components/domain/admin/ConfigClient"
 
-export default async function AdminConfigPage() {
+type ConfigRow = Database["public"]["Tables"]["config"]["Row"]
+
+const defaultConfig: ConfigRow = {
+  id: 1,
+  logo_url: null,
+  instagram_url: "https://www.instagram.com/tonhosuplementos",
+  whatsapp_url: null,
+  updated_at: "",
+}
+
+export default async function ConfigPage() {
   const supabase = createServiceRoleClient()
-  const { data: config } = await supabase.from('site_config').select('*').eq('id', 1).single()
+
+  const { data, error } = await supabase
+    .from("config")
+    .select("*")
+    .eq("id", 1)
+    .maybeSingle()
+
+  if (error) {
+    console.error("Erro ao buscar config:", error.message)
+  }
+
+  // ✅ garante tipo correto (nunca vira {} )
+  const config: ConfigRow = (data ?? defaultConfig) as ConfigRow
 
   return (
-    <div className="p-8">
-      <div className="mb-8">
-        <h1 className="font-display text-4xl text-white">CONFIGURAÇÕES</h1>
+    <div className="min-h-screen bg-black text-white p-6">
+      <div className="max-w-5xl mx-auto">
+        <h1 className="text-2xl font-bold uppercase tracking-widest">Config</h1>
         <p className="text-white/40 text-sm mt-1">Personalize o site e links</p>
       </div>
-      <ConfigClient initialConfig={config ?? { id: 1, logo_url: null, instagram_url: 'https://www.instagram.com/tonhosuplementos', whatsapp_url: null, updated_at: '' }} />
+
+      <div className="max-w-5xl mx-auto mt-6">
+        <ConfigClient initialConfig={config} />
+      </div>
     </div>
   )
 }
