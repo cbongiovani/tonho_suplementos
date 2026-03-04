@@ -1,0 +1,43 @@
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-inter: 'Inter', system-ui, sans-serif;
+  --font-bebas: 'Bebas Neue', Impact, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background: #000;
+  color: #fff;
+  font-family: var(--font-inter);
+}
+
+@layer utilities {
+  .font-display {
+    font-family: var(--font-bebas);
+  }
+  .text-orange {
+    color: #FF6A00;
+  }
+  .bg-orange {
+    background-color: #FF6A00;
+  }
+  .border-orange {
+    border-color: #FF6A00;
+  }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #111; }
+::-webkit-scrollbar-thumb { background: #FF6A00; border-radius: 3px; }
+
+/* Selection */
+::selection { background: #FF6A00; color: #000; }
