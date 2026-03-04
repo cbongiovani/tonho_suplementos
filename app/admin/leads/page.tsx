@@ -1,34 +1,34 @@
-import { createServiceRoleClient } from '@/lib/supabase/server'
-import { LeadsClient } from '@/components/domain/admin/LeadsClient'
+import { createServiceRoleClient } from "@/lib/supabase/server"
+import type { Database } from "@/lib/supabase/types"
+import { LeadsClient } from "@/components/domain/admin/LeadsClient" // se for export nomeado
+// se for default, use: import LeadsClient from "@/components/domain/admin/LeadsClient"
 
-export default async function AdminLeadsPage({
-  searchParams,
-}: {
-  searchParams: { q?: string; tag?: string; source?: string; page?: string }
-}) {
+type LeadRow = Database["public"]["Tables"]["leads"]["Row"]
+
+export default async function LeadsPage() {
   const supabase = createServiceRoleClient()
 
-  let query = supabase.from('leads').select('*').order('created_at', { ascending: false })
+  const { data, error } = await supabase
+    .from("leads")
+    .select("*")
+    .order("created_at", { ascending: false })
 
-  if (searchParams.q) {
-    query = query.or(`name.ilike.%${searchParams.q}%,email.ilike.%${searchParams.q}%,instagram_username.ilike.%${searchParams.q}%,whatsapp.ilike.%${searchParams.q}%`)
-  }
-  if (searchParams.tag) {
-    query = query.contains('tags', [searchParams.tag])
-  }
-  if (searchParams.source) {
-    query = query.eq('source', searchParams.source)
+  if (error) {
+    console.error("Erro ao buscar leads:", error.message)
   }
 
-  const { data: leads } = await query.limit(100)
+  const leads: LeadRow[] = (data ?? []) as LeadRow[]
 
   return (
-    <div className="p-8">
-      <div className="mb-8">
-        <h1 className="font-display text-4xl text-white">LEADS (CRM)</h1>
-        <p className="text-white/40 text-sm mt-1">{leads?.length ?? 0} leads encontrados</p>
+    <div className="min-h-screen bg-black text-white p-6">
+      <div className="max-w-5xl mx-auto">
+        <h1 className="text-2xl font-bold uppercase tracking-widest">Leads</h1>
+        <p className="text-white/40 text-sm mt-1">{leads.length} leads encontrados</p>
       </div>
-      <LeadsClient leads={leads ?? []} />
+
+      <div className="max-w-5xl mx-auto mt-6">
+        <LeadsClient leads={leads} />
+      </div>
     </div>
   )
 }
