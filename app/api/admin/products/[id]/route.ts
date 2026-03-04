@@ -1,21 +1,18 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { createServiceRoleClient } from '@/lib/supabase/server'
-import type { Database } from '@/lib/supabase/types'
 
-type ProductUpdate = Database['public']['Tables']['products']['Update']
+type Params = { id: string }
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(req: Request, { params }: { params: Params }) {
   try {
+    const body = (await req.json()) as Record<string, unknown>
     const supabase = createServiceRoleClient()
-    const body = (await req.json()) as ProductUpdate
 
     const { data: product, error } = await supabase
       .from('products')
-      .update(body)
-      .eq('id', params.id)
+      // ✅ cast para não virar "never" quando types não conhecem a tabela
+      .update(body as any)
+      .eq('id', params.id as any)
       .select('*')
       .single()
 
@@ -26,7 +23,7 @@ export async function PATCH(
     return NextResponse.json({ product })
   } catch (err: any) {
     return NextResponse.json(
-      { error: err?.message ?? 'Erro inesperado' },
+      { error: err?.message ?? 'Unexpected error' },
       { status: 500 }
     )
   }
